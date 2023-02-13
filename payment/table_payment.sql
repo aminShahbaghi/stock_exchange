@@ -10,10 +10,9 @@ CREATE TABLE payment."payment" (
     "amount" bigint NOT NULL CHECK ("amount" >= 0),
     "created_at" timestamp  NOT NULL,
     "user_id" bigint NOT NULL ,
-    "action" int2 NOT NULL,
+    "action" payment.payment_action_enum NOT NULL,
 
-    FOREIGN KEY (user_id) REFERENCES basic_auth.users (id),
-    FOREIGN KEY ("action") REFERENCES mydata."payment_action" (id)
+    FOREIGN KEY (user_id) REFERENCES basic_auth.users (id)
     
 );
 --------------------------------------------------------------------------------------
