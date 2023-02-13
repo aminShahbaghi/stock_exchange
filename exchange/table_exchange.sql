@@ -24,8 +24,8 @@ CREATE TABLE exchange."orders" (
     "price" integer NOT NULL CHECK ("price" >= 0),
     "quantity" smallint NOT NULL CHECK ("quantity" >= 0),
     "created_at" timestamp  NOT NULL,
-    "action" int2 NOT NULL,
-    "status" int2 NOT NULL,
+    "action" exchange.order_action_enum NOT NULL,
+	  status exchange.order_status_enum NOT NULL,
     "sub_order_id" bigint NULL,
     "symbol_id" bigint NOT NULL,
     "user_id_from" bigint NOT NULL,
@@ -34,8 +34,5 @@ CREATE TABLE exchange."orders" (
     FOREIGN KEY (symbol_id) REFERENCES exchange.symbol (id),
     FOREIGN KEY (sub_order_id) REFERENCES exchange.orders (id),
     FOREIGN KEY (user_id_from) REFERENCES basic_auth.users (id),
-    FOREIGN KEY (user_id_to) REFERENCES basic_auth.users (id),
-    FOREIGN KEY ("action") REFERENCES exchange.order_action(id),
-    FOREIGN KEY (status) REFERENCES exchange.order_status(id)
-    
+    FOREIGN KEY (user_id_to) REFERENCES basic_auth.users (id)
 );
