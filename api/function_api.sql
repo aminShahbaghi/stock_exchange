@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION api.create_symbol(full_name text, price integer, volu
 AS $function$
 begin
 	
-	insert into mydata.symbol ("full_name","price","volume","numberOfAllAvailableSymbol","symbolName")
+	insert into exchange.symbol ("full_name","price","volume","numberOfAllAvailableSymbol","symbolName")
 		values (create_symbol.full_name,create_symbol.price,create_symbol.volume,create_symbol."numberOfAllAvailableSymbol",create_symbol."symbolName");
 		
 	return json_build_object('msg','symbol registered successfully.');
@@ -114,7 +114,7 @@ AS $function$
 	end if;
 
     with x as(
-    insert into mydata.orders("price","quantity","created_at","action","status","symbol_id","user_id_from")
+    insert into exchange.orders("price","quantity","created_at","action","status","symbol_id","user_id_from")
    		values (orders.price,orders.quantity,now(),orders.action_,define_status,symbol,user_id)
    		returning *
 	)
@@ -148,7 +148,7 @@ AS $function$
 	end if;
 	
  select u.id into user_id from basic_auth.users u where u."username" = uname;
- insert into mydata.payment ("amount","created_at","user_id","action") values (register_payment.amount,now(),user_id,register_payment.action_);
+ insert into payment.payment ("amount","created_at","user_id","action") values (register_payment.amount,now(),user_id,register_payment.action_);
  update basic_auth.users set "accountBalance" =  "accountBalance" + register_payment.amount where username = uname ;
  
  GET DIAGNOSTICS rowcount = ROW_COUNT;
