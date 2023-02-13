@@ -31,11 +31,11 @@ CREATE TABLE exchange."orders" (
     "user_id_from" bigint NOT NULL,
     "user_id_to" bigint NULL,
 
-    FOREIGN KEY (symbol_id) REFERENCES mydata.symbol (id),
-    FOREIGN KEY (sub_order_id) REFERENCES mydata.orders (id),
+    FOREIGN KEY (symbol_id) REFERENCES exchange.symbol (id),
+    FOREIGN KEY (sub_order_id) REFERENCES exchange.orders (id),
     FOREIGN KEY (user_id_from) REFERENCES basic_auth.users (id),
     FOREIGN KEY (user_id_to) REFERENCES basic_auth.users (id),
-    FOREIGN KEY ("action") REFERENCES mydata.order_action(id),
-    FOREIGN KEY (status) REFERENCES mydata.order_status(id)
+    FOREIGN KEY ("action") REFERENCES exchange.order_action(id),
+    FOREIGN KEY (status) REFERENCES exchange.order_status(id)
     
 );
