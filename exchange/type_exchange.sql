@@ -1,0 +1,2 @@
+CREATE TYPE exchange.order_action_enum AS ENUM ('BUY', 'SELL');
+CREATE TYPE exchange.order_status_enum AS ENUM ('BUY_FINISH', 'SELL_FINISH', 'BUY_PENDING','SELL_PENDING', 'SELL_FIN_SUB', 'BUY_FIN_SUB');
