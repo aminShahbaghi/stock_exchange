@@ -75,7 +75,7 @@ end;
 $function$
 ;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION api.orders(symbol integer, price integer, quantity integer, action_ integer)
+CREATE OR REPLACE FUNCTION api.orders(symbol integer, price integer, quantity integer, action_ text)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -84,7 +84,7 @@ AS $function$
  	user_id int;
  	uname text;
 	res json;
-	define_status int2;
+	define_status exchange."order_status_enum";
 	order_ json;
  begin
 	 
@@ -100,22 +100,22 @@ AS $function$
 		return json_build_object ('msg', 'fail!');
 	end if;
 
-	res = exchange.validation_order(orders.symbol, orders.price, orders.quantity, orders.action_, user_id );
+	res = exchange.validation_order(orders.symbol, orders.price, orders.quantity, orders.action_::exchange."order_action_enum", user_id );
 
 	if res is not null then 
 		return res;
 	end if;
 
 	--define status to insert in orders
-	if action_=1 then -- 1:BUY
-		define_status = 3; --'BUY_PENDING'
-	elseif action_=2 then -- 2:SELL
-		define_status=4;
+	if action_ = 'BUY' then
+		define_status = 'BUY_PENDING';
+	elseif action_ = 'SELL' then
+		define_status = 'SELL_PENDING';
 	end if;
 
     with x as(
     insert into exchange.orders("price","quantity","created_at","action","status","symbol_id","user_id_from")
-   		values (orders.price,orders.quantity,now(),orders.action_,define_status,symbol,user_id)
+   		values (orders.price,orders.quantity,now(),orders.action_::exchange."order_action_enum",define_status,symbol,user_id)
    		returning *
 	)
 	select row_to_json(x.*) into order_ from x;
@@ -127,7 +127,7 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION api.register_payment(amount integer, action_ integer)
+CREATE OR REPLACE FUNCTION api.register_payment(amount integer, action_ text)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -148,7 +148,7 @@ AS $function$
 	end if;
 	
  select u.id into user_id from basic_auth.users u where u."username" = uname;
- insert into payment.payment ("amount","created_at","user_id","action") values (register_payment.amount,now(),user_id,register_payment.action_);
+ insert into payment.payment ("amount","created_at","user_id","action") values (register_payment.amount,now(),user_id,register_payment.action_::payment."payment_action_enum");
  update basic_auth.users set "accountBalance" =  "accountBalance" + register_payment.amount where username = uname ;
  
  GET DIAGNOSTICS rowcount = ROW_COUNT;
@@ -163,7 +163,7 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION api.retrive_orders(action_ integer)
+CREATE OR REPLACE FUNCTION api.retrive_orders(action_ text)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -177,7 +177,7 @@ AS $function$
 	end if;
 
 	
- select array_to_json(array_agg(row_to_json(o.*))) into res from mydata.orders o where o."action" = retrive_orders.action_ ;
+ select array_to_json(array_agg(row_to_json(o.*))) into res from exchange.orders o where o."action" = retrive_orders.action_::exchange."order_action_enum" ;
 
  if res is null then 
  	return json_build_object('msg','there is no order!');
