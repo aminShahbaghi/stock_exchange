@@ -115,7 +115,7 @@ AS $function$
 
     with x as(
     insert into exchange.orders("price","quantity","created_at","action","status","symbol_id","user_id_from")
-   		values (orders.price,orders.quantity,now(),orders.action_::exchange."order_action_enum",define_status,symbol,user_id)
+   		values (orders.price,orders.quantity,now(),orders.action_,define_status,symbol,user_id)
    		returning *
 	)
 	select row_to_json(x.*) into order_ from x;
