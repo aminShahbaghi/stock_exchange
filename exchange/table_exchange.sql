@@ -36,3 +36,15 @@ CREATE TABLE exchange."orders" (
     FOREIGN KEY (user_id_from) REFERENCES basic_auth.users (id),
     FOREIGN KEY (user_id_to) REFERENCES basic_auth.users (id)
 );
+
+
+CREATE TABLE exchange."orders_history" (
+    "id" serial NOT NULL PRIMARY KEY,
+    "order_id" int4  NOT null,
+    "order_price" integer  NULL CHECK ("order_price" >= 0),
+    "order_quantity" smallint  NULL CHECK ("order_quantity" >= 0),
+    "order_created_at" timestamp  NOT NULL,
+
+	FOREIGN KEY (order_id) REFERENCES exchange.orders (id)
+
+);
