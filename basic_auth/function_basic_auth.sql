@@ -110,3 +110,17 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+create or replace function basic_auth.return_user_id(currentUser text)
+ returns int
+ security definer
+ as $$
+ declare
+ res int;
+begin
+ 		
+	select id into res from basic_auth.users u where u.username = currentUser;
+	return res;
+end
+$$ language plpgsql;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
