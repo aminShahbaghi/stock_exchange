@@ -26,5 +26,11 @@ AS SELECT p.id,
     ps.image_id
    FROM payment.payment p
      JOIN payment.payment_slip ps ON p.id = ps.pk_fk_payment_id;
+
+
+grant select on api.info_payment_slip to customer;
+grant usage on schema payment to customer;
+grant select on table payment.payment to customer;
+grant select on table payment.payment_slip  to customer;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
