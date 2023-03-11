@@ -310,3 +310,67 @@ AS $function$
  end;
 $function$
 ;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.upload_payment_slip_image(bytea)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+  declare
+  id_ int;
+  uname text;
+ begin
+
+	if current_setting('request.jwt.claims', true)::json->>'role' = 'web_anon' then 
+		return json_build_object('msg','token required!');
+	end if;
+
+	uname := current_setting('request.jwt.claims', true)::json->>'role';
+
+	if uname is null then 
+		return json_build_object('msg','fail!');
+	end if;
+
+  	insert into payment."payment_slip_image" (file) values ($1) returning id into id_;
+ 
+ return json_build_object('image_id',id_);
+ end;
+$function$
+;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.register_payment_slip(amount integer, action_ text, account_number text, image_id integer, shaba_number text DEFAULT NULL::text, payment_code text DEFAULT NULL::text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+ DECLARE
+	uname text;
+	user_id int;
+	paymentid int;
+
+ begin
+	if current_setting('request.jwt.claims', true)::json->>'role' = 'web_anon' then 
+		return json_build_object('msg','token required!');
+	end if;
+
+	uname := current_setting('request.jwt.claims', true)::json->>'role';
+
+	if uname is null then 
+		return json_build_object('msg','fail!');
+	end if;
+	
+ user_id = basic_auth.return_user_id(uname);
+
+ insert into payment.payment ("amount","created_at","user_id","action")
+	values (amount,now(),user_id,action_::payment."payment_action_enum") returning id into paymentid;
+
+ 
+ insert into payment.payment_slip ("pk_fk_payment_id","account_number","payment_code","shaba_number","image_id")
+ 	values (paymentid,account_number,payment_code,shaba_number,image_id);
+ 
+
+ return json_build_object('msg','ok');
+ end;
+$function$
+;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
