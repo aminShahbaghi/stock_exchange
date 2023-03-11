@@ -442,3 +442,45 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.accept_or_reject_payment(payment_id integer, status text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+declare 
+	uid int;
+	action_ payment."payment_action_enum";
+	status_  payment."payment_status_enum";
+	amount_ int8;
+ begin 
+	 
+	if current_setting('request.jwt.claims', true)::json->>'role' = 'web_anon' then 
+		return json_build_object('msg','token required!');
+	end if;
+
+	 if current_setting('request.jwt.claims', true)::json->>'role' != 'op_admin' then 
+		return json_build_object('msg','access deny!');
+	end if;
+	 	 
+ 	update payment.payment 
+	set status = accept_or_reject_payment.status::payment."payment_status_enum"
+	where payment.status='PENDING' and payment.id = accept_or_reject_payment.payment_id
+	returning payment.user_id, payment."action", payment.status, payment.amount into uid ,action_ ,status_ ,amount_;
+	
+	if status_ = 'ACCEPT' then
+		update basic_auth.users 
+	 	set "accountBalance" = case 
+		 						 when action_ = 'DEPOSIT' then "accountBalance" + amount_
+		 						 when action_ = 'WITHDRAWAL' then "accountBalance" - amount_
+		 						 else "accountBalance"
+		 					   end
+	 	where id = uid ;
+	 
+	end if;
+
+	return json_build_object('msg','status updated.\n status:'||status_::text);
+ end
+ 
+$function$
+;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
