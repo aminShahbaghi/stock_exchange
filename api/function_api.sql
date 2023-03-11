@@ -374,3 +374,42 @@ AS $function$
 $function$
 ;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.register_payment_gateway(amount integer, card_number text, receiver_number text, terminal_number text, reference_number text, tracking_number text, gateway_payment_code text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+ DECLARE
+	uname text;
+	user_id int;
+	paymentid int;
+
+ begin
+	if current_setting('request.jwt.claims', true)::json->>'role' = 'web_anon' then 
+		return json_build_object('msg','token required!');
+	end if;
+
+	uname := current_setting('request.jwt.claims', true)::json->>'role';
+
+	if uname is null then 
+		return json_build_object('msg','fail!');
+	end if;
+	
+ user_id = basic_auth.return_user_id(uname);
+
+ insert into payment.payment ("amount","created_at","user_id","action")
+	values (amount,now(),user_id,'DEPOSIT'::payment."payment_action_enum") returning id into paymentid;
+-- increase accountBalance
+ update basic_auth.users set "accountBalance" =  "accountBalance" + amount
+ 	where username = uname ;--todo bank callback 
+ 
+ insert into payment.payment_gateway ("pk_fk_payment_id","card_number","receiver_number","terminal_number",
+ 									  "reference_number","tracking_number","gateway_payment_code")
+ 	values (paymentid,card_number,receiver_number,terminal_number,reference_number,tracking_number,gateway_payment_code);
+
+ return json_build_object('msg','ok');
+ end;
+$function$
+;
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
