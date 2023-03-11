@@ -413,3 +413,32 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.show_payment_slip_image(id integer)
+ RETURNS bytea
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+  declare headers text;
+  declare blob bytea;
+  begin
+		
+    select format(
+      '[{"Content-Type": "%s"},'
+       '{"Content-Disposition": "inline; filename=\"%s\""},'
+       '{"Cache-Control": "max-age=259200"}]'
+      , p.type, p.name)
+    from payment.payment_slip_image p where p.id = show_payment_slip_image.id into headers;
+    perform set_config('response.headers', headers, true);
+    select p.file from payment.payment_slip_image p where p.id = show_payment_slip_image.id into blob;
+    if found
+    then return(blob);
+    else raise sqlstate 'PT404' using
+      message = 'NOT FOUND',
+      detail = 'File not found',
+      hint = format('%s seems to be an invalid file id', show_payment_slip_image.id);
+    end if;
+  end
+$function$
+;
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
