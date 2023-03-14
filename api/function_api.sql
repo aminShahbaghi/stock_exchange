@@ -214,7 +214,7 @@ $function$
 ;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION api.edit_order(order_id integer, price integer=-1, quantity integer=-1)
+CREATE OR REPLACE FUNCTION api.edit_order_v2(order_id integer, price integer DEFAULT '-1'::integer, quantity integer DEFAULT '-1'::integer)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -239,69 +239,72 @@ AS $function$
 	end if;
 	
 	select o.* into order_old from exchange.orders o 
-		where o.id = edit_order.order_id and (o.status = 'BUY_PENDING' or o.status = 'SELL_PENDING');
-	
+		where o.user_id_from = user_id and o.id = edit_order_v2.order_id and (o.status = 'BUY_PENDING' or o.status = 'SELL_PENDING');
+
 	if order_old is null then
 		return json_build_object ('msg', 'there is no order!');
 	end if;
 	
-	if edit_order.price = -1 and edit_order.quantity = -1 then
+	if edit_order_v2.price = -1 and edit_order_v2.quantity = -1 then
 		raise exception 'invalid input'
 				using hint = 'price or quantity required!';
 	end if;
-	return json_build_object ('msg', order_old);
+
 	-- update price and quantity
-	if edit_order.price <> -1 and edit_order.quantity <> -1 and edit_order.price != order_old.price then
+	if edit_order_v2.price <> -1 and edit_order_v2.quantity <> -1 and edit_order_v2.price != order_old.price and edit_order_v2.quantity != order_old.quantity then
 		if order_old.action = 'BUY' then
 			select "accountBalance" into acount_balance from basic_auth.users where id = user_id;
-			if acount_balance < edit_order.price * edit_order.quantity then
+			if acount_balance < edit_order_v2.price * edit_order_v2.quantity then
 				raise exception 'acountbalance is not enough'
 				using hint = 'multiply price and quantity should be greater than or equall to acountbalance';
 			end if;
 		end if;
 	
-		update exchange.orders set price = edit_order.price, quantity = edit_order.quantity , created_at = now()
-			where id = edit_order.order_id;
+		update exchange.orders set price = edit_order_v2.price, quantity = edit_order_v2.quantity , created_at = now()
+			where id = edit_order_v2.order_id;
 		
-		insert into exchange.orders_history ("order_id","order_price","order_quantity","order_created_at") 
-			values (order_old.id, order_old.price, order_old.quantity, order_old.created_at);
+		insert into exchange.orders_history_price ("order_id","order_price","order_created_at") 
+			values (order_old.id, order_old.price, order_old.created_at);
+		
+		insert into exchange.orders_history_quantity ("order_id","order_quantity","order_created_at") 
+			values (order_old.id, order_old.quantity, order_old.created_at);
 		
 		return json_build_object ('msg', 'update quantity and price');
 	end if;
 	
 	-- update price	
-	if edit_order.price <> -1 and edit_order.price != order_old.price then
+	if edit_order_v2.price <> -1 and edit_order_v2.price != order_old.price then
 		if order_old.action = 'BUY' then
 			select "accountBalance" into acount_balance from basic_auth.users where id = user_id;
-			if acount_balance < edit_order.price * order_old.quantity then
+			if acount_balance < edit_order_v2.price * order_old.quantity then
 				raise exception 'acountbalance is not enough'
 				using hint = 'multiply price and quantity should be greater than or equall to acountbalance';
 			end if;
 		end if;
 	
-		update exchange.orders set price = edit_order.price , created_at = now()
-			where id = edit_order.order_id;
+		update exchange.orders set price = edit_order_v2.price , created_at = now()
+			where id = edit_order_v2.order_id;
 		
-		insert into exchange.orders_history ("order_id","order_price","order_quantity","order_created_at") 
-			values (order_old.id, order_old.price,null, order_old.created_at);
+		insert into exchange.orders_history_price ("order_id","order_price","order_created_at") 
+			values (order_old.id, order_old.price, order_old.created_at);
 	return json_build_object ('msg', 'update price');
 	end if;
 
 
 	-- update quantity	
-	if edit_order.quantity <> -1 and edit_order.quantity != order_old.quantity then
+	if edit_order_v2.quantity <> -1 and edit_order_v2.quantity != order_old.quantity then
 		if order_old.action = 'BUY' then
 			select "accountBalance" into acount_balance from basic_auth.users where id = user_id;
-			if acount_balance < edit_order.quantity * order_old.price then
+			if acount_balance < edit_order_v2.quantity * order_old.price then
 				raise exception 'acountbalance is not enough'
 				using hint = 'multiply price and quantity should be greater than or equall to acountbalance';
 			end if;
 		end if;
 	
-		update exchange.orders set quantity = edit_order.quantity , created_at = now()
-			where id = edit_order.order_id;
-		insert into exchange.orders_history ("order_id","order_price","order_quantity","order_created_at") 
-			values (order_old.id, null, order_old.quantity, order_old.created_at);
+		update exchange.orders set quantity = edit_order_v2.quantity , created_at = now()
+			where id = edit_order_v2.order_id;
+		insert into exchange.orders_history_quantity ("order_id","order_quantity","order_created_at") 
+			values (order_old.id, order_old.quantity, order_old.created_at);
 	return json_build_object ('msg', 'update quantity');
 	end if;
 
@@ -484,3 +487,4 @@ declare
 $function$
 ;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
